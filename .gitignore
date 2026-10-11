@@ -110,3 +110,6 @@ web_modules/
 /ios
 /android
 __generated__
+dist/
+web-build/
+
