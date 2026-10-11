@@ -292,19 +292,77 @@ All backend responses conform to a standardized JSON response envelope:
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 How to Run the Entire Project
 
-### Prerequisites
-
-- **Docker & Docker Compose** (Recommended for instant setup) OR **Node.js v20+ & MongoDB**
-- **Expo Go App**: Installed on physical Android / iOS device (or simulator)
-- **Cloudinary Account**: Cloud name, API key & secret for media uploads (optional for browsing)
+This guide provides end-to-end instructions for launching both the **Backend API** and the **Mobile Client**, whether using containerized Docker services or running natively.
 
 ---
 
-### 1. Backend Setup
+### 1. Prerequisites & System Requirements
 
-#### Option A: One-Command Docker Setup (Recommended)
+Before starting, ensure your system has the following installed:
+
+- **Node.js**: v20.x or higher (`node -v`)
+- **npm**: v10.x or higher (`npm -v`)
+- **Docker & Docker Compose** (Optional, recommended for one-command database and backend setup)
+- **Expo Go App**: Installed on your physical Android device (Google Play Store) or iOS device (Apple App Store)
+- **Android Studio / Xcode** (Optional, only needed if testing on local emulators/simulators)
+- **Cloudinary Account** (Optional for browsing catalog, required for uploading new media submissions)
+
+---
+
+### 2. Environment Configuration
+
+The repository uses environment blueprints for both services.
+
+#### Backend Environment Setup
+1. Navigate to `backend/`:
+   ```bash
+   cd backend
+   cp .env.example .env
+   ```
+2. Open `backend/.env` and configure key variables:
+   ```env
+   PORT=5000
+   NODE_ENV=development
+   CORS_ORIGIN=*
+   MAX_WORKERS=0             # 0 = auto-detect and fork all available CPU cores
+   CACHE_TTL_SECONDS=30      # In-memory route cache duration
+
+   # MongoDB connection string (Local or MongoDB Atlas Cluster)
+   MONGO_URI=mongodb://localhost:27017/feedants
+   DB_NAME=feedants
+
+   # Authentication Secret
+   JWT_SECRET=feedants_super_secret_jwt_key_2026
+   JWT_EXPIRY=7d
+
+   # Cloudinary Media CDN (Required for photo/video submissions)
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+
+#### Frontend Environment Setup
+1. Open a new terminal and navigate to `frontend/`:
+   ```bash
+   cd frontend
+   cp .env.example .env
+   ```
+2. Open `frontend/.env` and verify:
+   ```env
+   EXPO_PUBLIC_API_URL=http://localhost:5000/api/v1
+   EXPO_PUBLIC_APP_ENV=development
+   ```
+   > **Note on Expo Environment Variables**: In Expo SDK 49+, all variables prefixed with `EXPO_PUBLIC_` are automatically bundled and exposed to the client JavaScript runtime via `process.env.EXPO_PUBLIC_*`.
+
+---
+
+### 3. Running the Backend & Database
+
+You can run the backend services using **Docker Compose** (recommended) or **Natively**.
+
+#### Option A: Docker Compose (One-Command Launch — Recommended)
 
 From the project root:
 
@@ -312,124 +370,168 @@ From the project root:
 docker compose up -d
 ```
 
-This spins up MongoDB and the clustered Node.js backend automatically.
+This starts:
+- **MongoDB** container running on port `27017` with persistent data volume.
+- **Clustered Node.js Backend** container running on port `5000`.
 
-Verify health:
+**Docker Management Commands**:
+```bash
+# View real-time backend logs
+docker compose logs -f backend
+
+# Check container status
+docker compose ps
+
+# Stop all containers
+docker compose down
+```
+
+Verify backend health:
 ```bash
 curl http://localhost:5000/api/v1/health
 ```
 
-To view logs or stop:
+#### Option B: Native Node.js Execution (Without Docker)
+
+1. Ensure a local MongoDB instance is running on port `27017` (or provide an active MongoDB Atlas cluster URI in `backend/.env`).
+2. Navigate to `backend/` and install dependencies:
+   ```bash
+   cd backend
+   npm install
+   ```
+3. Launch the server:
+   ```bash
+   # Development mode with file watch
+   npm run dev
+
+   # OR Clustered production mode (forks across all CPU cores)
+   npm start
+   ```
+
+Verify backend health:
 ```bash
-docker compose logs -f backend
-docker compose down
+curl http://localhost:5000/api/v1/health
 ```
-
-#### Option B: Native Node.js Setup
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-```
-
-Configure `.env` with your `MONGO_URI`, then run:
-
-```bash
-npm run dev       # Development mode with watch
-# or
-npm start         # Clustered production mode
-```
-
-Verify health: `http://localhost:5000/api/v1/health`
 
 ---
 
-### 2. Frontend Setup
+### 4. Running the Frontend (Mobile App)
 
-```bash
-# Open a new terminal and navigate to frontend
-cd frontend
-
-# Install dependencies
-npm install
-
-# Configure environment variables
-cp .env.example .env
-```
-
-Open `frontend/.env` and verify:
-
-```env
-EXPO_PUBLIC_API_URL=http://localhost:5000/api/v1
-EXPO_PUBLIC_APP_ENV=development
-```
-
-> **Adaptive LAN IP Detection**: On physical mobile devices, `localhost` refers to the mobile phone itself. Our custom networking service ([`frontend/src/services/api.ts`](frontend/src/services/api.ts)) automatically extracts your computer's local Wi-Fi IP from the Expo bundler host URI at runtime. You do not need to manually edit IP addresses when switching between PC web and physical phone testing.
-
-Launch the Expo Development Server:
-
-```bash
-npx expo start
-```
-
-- **Physical Device**: Scan the generated QR code using the Expo Go application (Android) or Camera app (iOS). Ensure phone and PC are on the same Wi-Fi network.
-- **Web Browser**: Press `w` in the terminal to run in Chrome / browser.
-- **Android Emulator**: Press `a`.
-- **iOS Simulator**: Press `i`.
+1. In a separate terminal, navigate to `frontend/`:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. Start the Expo bundler:
+   ```bash
+   npx expo start
+   ```
+3. Clear cache if needed:
+   ```bash
+   npx expo start -c
+   ```
 
 ---
 
-## 🎨 Design Tokens & UI Architecture
+### 5. Target Platforms & How to Connect
 
-The frontend leverages a centralized design token system defined in [`frontend/src/theme.ts`](frontend/src/theme.ts):
+Once the Expo development server is running, choose your target platform:
 
-### Color System (Teal & Emerald Foundation)
-- **Primary Brand**: `#005c55` (Primary Deep Teal), `#0f766e` (Primary Container), `#a3faef` (On Primary Container), `#9cf2e8` (Primary Fixed).
-- **Secondary Accent**: `#006b5f` (Secondary), `#6df5e1` (Secondary Container).
-- **Brand Spectrum**: Graded from `#f0fdfa` (brand50) through `#14b8a6` (brand500) to `#134e4a` (brand900).
-- **Surface Hierarchy**: `#f8f9ff` (Canvas Background), `#eff4ff` (Low), `#e5eeff` (Container), `#dce9ff` (High), `#d3e4fe` (Highest).
-- **Accent & Awards**: `#f59e0b` (Amber / Gold Leaderboard), `#d97706` (Amber Accent).
-- **Status & Urgency**: `#ba1a1a` (Error / Urgency Alert), `#ffdad6` (Error Container).
+#### 📱 Physical Mobile Device (Android / iOS)
+1. Ensure your physical phone and computer are connected to the **same local Wi-Fi network**.
+2. **Android**: Open the **Expo Go** app and tap **"Scan QR code"**. Scan the terminal QR code.
+3. **iOS**: Open the native **Camera** app, point at the terminal QR code, and tap the prompt to open in Expo Go.
+4. **Adaptive LAN IP Auto-Resolution**:
+   On physical devices, `localhost` points to the mobile phone itself, not your PC. Our custom networking client ([`frontend/src/services/api.ts`](frontend/src/services/api.ts)) dynamically detects your host computer's local Wi-Fi IP address from the Expo bundler `hostUri` at runtime. You **do not** need to manually hardcode your IP address when switching between devices.
 
-### Spacing & Typography Scale
-- **Spacing Grid**: Normalized 8pt system from `xs` (2px), `sm` (4px), `md` (8px), `lg` (12px), `xl` (16px), up to `6xl` (48px).
-- **Typography**: Fluid scale from `xs` (11px micro-captions) to `3xl` (28px display headers) paired with standardized font weights (`regular`, `medium`, `semiBold`, `bold`).
-- **Border Radius**: Consistent rounding tokens from `sm` (4px) to `full` (9999px pill shapes).
+#### 🌐 Web Browser
+Press **`w`** in the Expo interactive terminal to open the application in Google Chrome / default browser at `http://localhost:8081`.
+
+#### 🤖 Android Emulator
+With Android Studio running and a virtual device launched, press **`a`** in the Expo terminal.
+
+#### 🍎 iOS Simulator (macOS only)
+With Xcode installed, press **`i`** in the Expo terminal.
 
 ---
 
-## 🧪 Verification & Testing Runbook
+### ⌨️ Expo Terminal Keyboard Controls
 
-### 1. Test Health Endpoint & Hardware Metrics
+While the Expo server is active, use the following interactive terminal shortcuts:
 
+| Key | Action |
+| :---: | :--- |
+| `w` | Open application in web browser |
+| `a` | Open on Android emulator / connected device |
+| `i` | Open on iOS simulator |
+| `r` | Reload application JavaScript bundle |
+| `m` | Toggle in-app developer menu |
+| `c` | Show terminal QR code again |
+| `j` | Open Chrome DevTools debugger |
+| `?` | Show all available commands |
+
+---
+
+### 🔧 Troubleshooting & FAQ
+
+#### 1. `Error: listen EADDRINUSE: address already in use :::5000`
+Another process is already occupying port `5000`. Kill the existing process:
+```bash
+# Linux / macOS
+npx kill-port 5000
+# or find PID and kill:
+lsof -i :5000
+kill -9 <PID>
+```
+
+#### 2. `Network request failed` on Physical Mobile Device
+- **Check Wi-Fi Network**: Ensure your mobile phone and development machine are connected to the exact same Wi-Fi SSID.
+- **Router Isolation / Hotspot**: Corporate or public Wi-Fi networks often enable "AP Isolation", preventing devices from communicating with each other. Connect both devices to a mobile hotspot to bypass network isolation.
+- **Firewall Restrictions**: Ensure your host operating system firewall allows incoming TCP connections on port `5000`.
+
+#### 3. MongoDB Connection Refused (`ECONNREFUSED 127.0.0.1:27017`)
+- If running natively, ensure the local MongoDB daemon is active:
+  ```bash
+  sudo systemctl status mongod
+  # Or start it:
+  sudo systemctl start mongod
+  ```
+- If using Docker, check that the container is healthy:
+  ```bash
+  docker ps -a
+  docker compose restart mongodb
+  ```
+
+#### 4. Media Upload Fails in Studio (`Upload Failed: Cloudinary credentials missing`)
+Browsing the app works without Cloudinary credentials using built-in fallbacks. However, uploading videos or photos from the **Create** tab requires valid `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in `backend/.env`.
+
+---
+
+### 🧪 Verification & Health Checking Runbook
+
+#### 1. Hardware & Process Health Check
 ```bash
 curl -X GET http://localhost:5000/api/v1/health
 ```
+_Expected Output_: `200 OK` with JSON payload containing system status (`UP`), CPU core count, uptime, and memory usage.
 
-_Expected Output_: `200 OK` with JSON payload containing system status (`UP`), CPU core count, uptime, and memory metrics (`rss`, `heapTotal`, `heapUsed`).
-
-### 2. Verify In-Memory Cache Headers
-
+#### 2. Verify In-Memory Cache Headers
 ```bash
-# First call (Cache Miss)
+# First request (Cache Miss)
 curl -i http://localhost:5000/api/v1/competitions
 # Header check: X-Cache: MISS
 
-# Second call within 15s (Cache Hit - Sub-5ms)
+# Second request within 15s (Cache Hit - Sub-5ms)
 curl -i http://localhost:5000/api/v1/competitions
 # Header check: X-Cache: HIT
 ```
 
-### 3. Verify Atomic Concurrency on Registration
-
-Simulate high-concurrency registration using a load-testing tool (e.g., `autocannon` or `k6`):
-
+#### 3. High-Concurrency Stress Test on Atomic Spot Booking
+Simulate concurrent registration requests using a load-testing utility (`autocannon` or `k6`):
 ```bash
 npx autocannon -c 100 -d 10 -m POST http://localhost:5000/api/v1/competitions/<CONTEST_ID>/join
 ```
-
-_Expected Result_: Exactly `N` registrations succeed until `spotsLeft == 0`. Subsequent requests immediately receive `400 Bad Request: "Contest is already full!"` with zero over-enrollment or negative spot counts.
+_Expected Result_: Exactly `N` registrations succeed until `spotsLeft == 0`. Subsequent requests immediately return `400 Bad Request: "Contest is already full!"` with zero over-enrollment or negative spot counts.
 
 ---
 
