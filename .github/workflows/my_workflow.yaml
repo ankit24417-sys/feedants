@@ -80,6 +80,12 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
+          # Auto-repair key if PEM header/footer was omitted
+          if [[ "$SSH_KEY" != *"BEGIN "* ]]; then
+            echo "🔧 Auto-repairing private key: Adding missing PEM header and footer..."
+            SSH_KEY=$(printf -- "-----BEGIN RSA PRIVATE KEY-----\n%s\n-----END RSA PRIVATE KEY-----\n" "$SSH_KEY")
+          fi
+
           # Fix potential line-ending issues and write key
           printf "%s\n" "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
@@ -88,7 +94,7 @@ jobs:
           ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
           echo "🚀 Connecting to $SERVER_USER@$SERVER_HOST..."
-          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key "$SERVER_USER@$SERVER_HOST" '
+          ssh -o StrictHostKeyChecking=accept-new -o PubkeyAcceptedKeyTypes=+ssh-rsa -o HostkeyAlgorithms=+ssh-rsa -i ~/.ssh/deploy_key "$SERVER_USER@$SERVER_HOST" '
             set -e
             echo "========================================="
             echo "🚀 Starting Feedants deployment on server"
