@@ -644,25 +644,47 @@ Once the GitHub Actions workflow finishes with a green checkmark:
 
 ---
 
-## 🔮 Production Scaling Roadmap
+## 🛠️ Troubleshooting & Common Issues
 
-For scaling Feedants to an enterprise tier serving millions of concurrent active users, the following architectural milestones are recommended:
+| Issue | Cause | Resolution |
+| :--- | :--- | :--- |
+| **Port 80 or 5000 already in use** | Another service (e.g. Apache, local Node) is bound to the port. | Find the process using `sudo lsof -i :<PORT>` and stop it, or update host ports in `docker-compose.yml`. |
+| **Permission denied on docker.sock** | User does not have privileges to communicate with the Docker daemon. | Add your user to the docker group: `sudo usermod -aG docker $USER` and log back into your shell. |
+| **Cannot reach server via browser** | EC2 Security Group is missing inbound rules for web traffic. | In the AWS EC2 Console, add Inbound Rules allowing **Port 80** and **Port 5000** from `0.0.0.0/0`. |
+| **Frontend displays empty data** | MongoDB is not seeded or backend is still connecting. | Check logs using `docker compose logs backend`. The backend auto-seeds on startup; restart with `docker compose restart backend`. |
+| **Docker Compose command error** | Older Docker installation uses hyphenated syntax. | The deployment script handles this automatically, or install modern compose via `sudo apt install docker-compose-v2`. |
 
-1. **Distributed Caching & Asynchronous Queue Ingestion (Redis + BullMQ)**:
-   - Transition the in-process cache to a managed **Redis Sentinel / Cluster** for cross-pod cache synchronization and distributed rate limiting.
-   - Offload media transcoding, video watermarking, automated fraud scoring, and push notifications to **BullMQ** worker threads backed by Redis.
-2. **Database Read-Write Splitting & Sharding**:
-   - Implement **MongoDB Replica Sets** with read preference routing: directed writes go to the primary node, while heavy catalog browsing queries are distributed across read secondaries (`readPreference: 'secondaryPreferred'`).
-   - Shard the `submissions` and `registrations` collections by `{ contestId, createdAt }` to maintain constant-time query latency as data volumes reach tens of millions of records.
-3. **Idempotent Payment Gateway Integration**:
-   - Production integration with **Razorpay / Stripe Webhooks**:
-     - Pre-registration order generation with server-side HMAC-SHA256 signature verification.
-     - Database idempotency keys to guarantee a user is never double-charged during network retry loops.
-     - Automated escrow wallet disbursement directly to winner bank accounts upon jury score finalization.
-4. **Real-Time State Synchronization via WebSockets / SSE**:
-   - Implement **Socket.io / Server-Sent Events (SSE)** for real-time contest dynamics:
-     - Live broadcast of remaining spot countdowns (`"Only 2 spots left!"`) to all active viewers.
-     - Live leaderboard position updates as adjudicators submit scores during championship finals.
-5. **Observability, APM & Infrastructure as Code**:
-   - Multi-stage Dockerfiles with non-root security contexts, Kubernetes Helm charts, and Horizontal Pod Autoscaling (HPA).
-   - Instrument the backend with **OpenTelemetry**, exporting metrics to Prometheus/Grafana and distributed traces to Jaeger/Datadog for p99 latency monitoring and slow-query profiling.
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow standard Git workflow conventions:
+
+1. **Fork the repository** on GitHub.
+2. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. **Commit your changes**:
+   ```bash
+   git commit -m "feat: add your feature description"
+   ```
+4. **Push to the branch**:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+5. **Open a Pull Request** with a description of your updates and testing verification.
+
+---
+
+## 📄 License
+
+This project is licensed under the [ISC License](https://opensource.org/licenses/ISC).
+
+---
+
+## 📬 Contact & Support
+
+- **Repository**: [https://github.com/ankit24417-sys/feedants](https://github.com/ankit24417-sys/feedants)
+- **Issues & Bug Reports**: [GitHub Issues](https://github.com/ankit24417-sys/feedants/issues)
+- **Author**: Ankit (<rathaurankit501@gmail.com>)
