@@ -88,7 +88,7 @@ jobs:
           ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
           echo "🚀 Connecting to $SERVER_USER@$SERVER_HOST..."
-          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key "$SERVER_USER@$SERVER_HOST" bash -s << 'EOF'
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key "$SERVER_USER@$SERVER_HOST" '
             set -e
             echo "========================================="
             echo "🚀 Starting Feedants deployment on server"
@@ -133,4 +133,5 @@ jobs:
             echo "========================================="
             echo "✅ Deployment completed successfully!"
             echo "========================================="
-EOF
+          '
+
