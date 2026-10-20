@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { DB_NAME } from "../constants.js";
+import { seedIfEmpty } from "../utils/seedData.js";
 import "dotenv/config";
 
 const connectDB = async () => {
@@ -23,6 +24,10 @@ const connectDB = async () => {
     console.log(
       `[Database] Connected successfully to host: ${connectionInstance.connection.host} | DB: ${DB_NAME}`
     );
+
+    // Auto-seed initial demo data if database is empty
+    await seedIfEmpty();
+
     return connectionInstance;
   } catch (err) {
     console.error("[Database] Connection Failed:", err.message);

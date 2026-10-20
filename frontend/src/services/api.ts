@@ -3,9 +3,19 @@ import Constants from 'expo-constants';
 
 // Dynamically determine backend URL based on host environment or .env
 export const getBaseUrl = (): string => {
-  // 1. Web browser running on PC can connect to localhost directly
+  // 1. Web browser running on PC or deployed server
   if (Platform.OS === 'web') {
-    return process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+    if (process.env.EXPO_PUBLIC_API_URL) {
+      return process.env.EXPO_PUBLIC_API_URL;
+    }
+    if (typeof window !== 'undefined' && window.location) {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000/api/v1';
+      }
+      // Deployed web: use same origin so Nginx reverse-proxies /api/ to backend:5000
+      return `${window.location.origin}/api/v1`;
+    }
+    return '/api/v1';
   }
 
   // 2. On physical mobile phones, localhost points to the phone itself, NOT the PC!
