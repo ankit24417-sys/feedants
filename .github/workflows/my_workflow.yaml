@@ -1,0 +1,120 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ===============================================================
+  # JOB 1: Build Docker image & verify build integrity
+  # ===============================================================
+  build:
+    name: Build & Package Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build and push backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===============================================================
+  # JOB 2: Deploy to remote server via SSH
+  # ===============================================================
+  deploy:
+    name: Deploy to Server
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Execute deployment commands on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST || '3.110.181.136' }}
+          username: ${{ secrets.SERVER_USER || 'ubuntu' }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stop: true
+          script: |
+            echo "========================================="
+            echo "🚀 Starting Feedants deployment on server"
+            echo "========================================="
+
+            # 1. Target directory where project is located on server
+            APP_DIR="${{ secrets.SERVER_APP_DIR }}"
+            if [ -z "$APP_DIR" ]; then
+              APP_DIR="$HOME/feedants"
+            fi
+
+            echo "📁 Ensuring project directory exists: $APP_DIR"
+            if [ ! -d "$APP_DIR" ]; then
+              echo "Repository not found at $APP_DIR. Cloning repository..."
+              git clone https://github.com/${{ github.repository }}.git "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+
+            # 2. Fetch latest changes from GitHub
+            echo "📥 Fetching latest code from branch main..."
+            git pull origin main
+
+            # 3. Detect docker compose command (v2 plugin vs v1 standalone)
+            if docker compose version &> /dev/null; then
+              COMPOSE_CMD="docker compose"
+            elif command -v docker-compose &> /dev/null; then
+              COMPOSE_CMD="docker-compose"
+            else
+              echo "❌ Error: Docker Compose is not installed on the server."
+              exit 1
+            fi
+
+            # 4. Build and restart backend container
+            echo "🐳 Building and restarting backend service using: $COMPOSE_CMD"
+            $COMPOSE_CMD up -d --build backend
+
+            # 5. Clean up dangling images to conserve server storage
+            echo "🧹 Pruning dangling docker images..."
+            docker image prune -f
+
+            # 6. Verify container status
+            echo "📊 Verifying running containers:"
+            $COMPOSE_CMD ps
+
+            echo "========================================="
+            echo "✅ Deployment completed successfully!"
+            echo "========================================="
