@@ -173,12 +173,16 @@ sequenceDiagram
 
 ```text
 .
+├── .github/
+│   └── workflows/
+│       └── my_workflow.yaml       # GitHub Actions CI/CD Pipeline (Docker build, GHCR, SSH deployment)
+│
 ├── backend/                       # Node.js + Express + MongoDB Backend Service
-│   ├── app.js                     # Express app configuration & middleware pipeline
-│   ├── constants.js               # Application constants & database identifiers
-│   ├── index.js                   # Cluster manager, server bootstrap & HTTP tuning
 │   ├── src/
-│   │   ├── config/                # Database connection pooling & options
+│   │   ├── app.js                 # Express app configuration & middleware pipeline
+│   │   ├── constants.js           # Application constants & database identifiers
+│   │   ├── index.js               # Cluster manager, server bootstrap & HTTP tuning
+│   │   ├── config/                # Database connection pooling & auto-seed trigger
 │   │   │   └── db.js
 │   │   ├── controllers/           # Business logic & atomic query controllers
 │   │   │   ├── champion.controller.js
@@ -207,17 +211,21 @@ sequenceDiagram
 │   │   │   ├── health.routes.js
 │   │   │   ├── submission.routes.js
 │   │   │   └── user.routes.js
-│   │   └── utils/                 # Standardized response envelopes & Cloudinary
+│   │   └── utils/                 # Standardized response envelopes, Cloudinary & DB seeder
 │   │       ├── apiError.js
 │   │       ├── apiResponse.js
 │   │       ├── asyncHandler.js
-│   │       └── cloudinary.js
-│   ├── Dockerfile                 # Production container image definition
+│   │       ├── cloudinary.js
+│   │       └── seedData.js        # Default data seeder (Categories, Competitions, Champions)
+│   ├── Dockerfile                 # Production backend container definition
 │   ├── .dockerignore
 │   ├── .env.example               # Backend environment blueprint
 │   └── package.json
 │
-├── frontend/                      # React Native + Expo Mobile Application
+├── frontend/                      # React Native + Expo Mobile & Web Application
+│   ├── Dockerfile                 # Multi-stage Expo Web build + Nginx static server
+│   ├── nginx.conf                 # Nginx SPA router & /api/ reverse proxy
+│   ├── .dockerignore
 │   ├── App.tsx                    # Root provider entry point
 │   ├── app.json                   # Expo configuration manifest
 │   ├── src/
@@ -236,12 +244,12 @@ sequenceDiagram
 │   │   │   ├── CreateScreen.tsx
 │   │   │   └── ProfileScreen.tsx
 │   │   ├── services/
-│   │   │   └── api.ts             # Adaptive networking client (Auto LAN IP detection)
+│   │   │   └── api.ts             # Adaptive networking client (Auto LAN IP & dynamic Web origin detection)
 │   │   └── theme.ts               # Design tokens (Teal brand palette, spacing, typography)
 │   ├── .env.example               # Frontend environment blueprint
 │   └── package.json
 │
-├── docker-compose.yml             # Container orchestration (Backend + MongoDB)
+├── docker-compose.yml             # Full-stack container orchestration (Frontend + Backend + MongoDB)
 ├── .gitignore
 ├── .prettierrc
 └── README.md                      # Project documentation & engineering analysis
@@ -262,7 +270,9 @@ sequenceDiagram
 | **Navigation** | React Navigation | 7.x | Native stack transitions and fluid bottom tab navigation |
 | **Language** | TypeScript / ES Modules | 5.x / ESM | Static typing on client and modern ES module syntax on server |
 | **Media Pipeline** | Cloudinary + Multer | 2.x | Memory buffer ingestion with streaming upload to global CDN |
-| **Containerization**| Docker & Docker Compose | Latest | Reproducible development and deployment environments |
+| **Containerization**| Docker & Docker Compose | Latest | Reproducible multi-service development and production orchestration |
+| **Web Server & Proxy** | Nginx | Alpine | High-concurrency static asset delivery & `/api/` reverse proxy |
+| **CI/CD Automation** | GitHub Actions | v4 | Automated Docker Buildx, GHCR package publishing & zero-downtime SSH deployment |
 
 ---
 
@@ -358,40 +368,46 @@ The repository uses environment blueprints for both services.
 
 ---
 
-### 3. Running the Backend & Database
+### 3. Running the Full Stack with Docker Compose
 
-You can run the backend services using **Docker Compose** (recommended) or **Natively**.
+You can run the entire full stack (Frontend, Backend, and Database) using **Docker Compose** (recommended) or run each service **Natively**.
 
-#### Option A: Docker Compose (One-Command Launch — Recommended)
+#### Option A: Docker Compose (One-Command Full-Stack Launch — Recommended)
 
 From the project root:
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 This starts:
-- **MongoDB** container running on port `27017` with persistent data volume.
-- **Clustered Node.js Backend** container running on port `5000`.
+- **Frontend Web App (`feedants-frontend`)**: Nginx web server running on port `80` with SPA routing and reverse proxy for `/api/` calls.
+- **Backend API (`feedants-backend`)**: Clustered Node.js / Express 5 API running on port `5000` (automatically seeds initial categories, competitions, and champions if the database is empty).
+- **MongoDB Database (`feedants-mongo`)**: MongoDB 7 instance on port `27017` with persistent volume `mongo_data`.
 
-**Docker Management Commands**:
+**Useful Docker Management Commands**:
 ```bash
-# View real-time backend logs
+# View real-time logs across all services
+docker compose logs -f
+
+# View backend API logs specifically
 docker compose logs -f backend
+
+# View frontend web logs specifically
+docker compose logs -f frontend
 
 # Check container status
 docker compose ps
 
-# Stop all containers
+# Stop and remove containers
 docker compose down
 ```
 
-Verify backend health:
-```bash
-curl http://localhost:5000/api/v1/health
-```
+**Verify Services**:
+- Frontend Web App: Open `http://localhost/` in your browser.
+- Backend API Health: `curl http://localhost:5000/api/v1/health` (or `curl http://localhost/api/v1/health` through Nginx).
 
-#### Option B: Native Node.js Execution (Without Docker)
+#### Option B: Native Execution (Without Docker)
 
 1. Ensure a local MongoDB instance is running on port `27017` (or provide an active MongoDB Atlas cluster URI in `backend/.env`).
 2. Navigate to `backend/` and install dependencies:
@@ -532,6 +548,99 @@ Simulate concurrent registration requests using a load-testing utility (`autocan
 npx autocannon -c 100 -d 10 -m POST http://localhost:5000/api/v1/competitions/<CONTEST_ID>/join
 ```
 _Expected Result_: Exactly `N` registrations succeed until `spotsLeft == 0`. Subsequent requests immediately return `400 Bad Request: "Contest is already full!"` with zero over-enrollment or negative spot counts.
+
+---
+
+## 🔄 Automated CI/CD & Deployment Pipeline
+
+Feedants features an automated, production-grade CI/CD pipeline defined in [`.github/workflows/my_workflow.yaml`](.github/workflows/my_workflow.yaml). Every `git push` to the `main` branch automatically builds, verifies, packages, and deploys the entire full-stack application to the remote AWS EC2 production server with zero downtime.
+
+### 📊 Pipeline Architecture
+
+```mermaid
+flowchart TD
+    subgraph Git["Source Control"]
+        Push["git push origin main"]
+    end
+
+    subgraph CI["GitHub Actions Runner (Ubuntu Latest)"]
+        Checkout["actions/checkout@v4<br/>Fetch Repository"]
+        Buildx["docker/setup-buildx-action@v3<br/>Set Up Docker Build Engine"]
+        GHCR["docker/login-action@v3<br/>Authenticate with GHCR"]
+        BuildBackend["docker/build-push-action@v5<br/>Build & Push Backend Image<br/>ghcr.io/.../backend:latest"]
+        BuildFrontend["docker/build-push-action@v5<br/>Build & Push Frontend Image<br/>ghcr.io/.../frontend:latest"]
+    end
+
+    subgraph CD["Remote Production Server (AWS EC2)"]
+        SSH["Native OpenSSH with Key Auto-Repair"]
+        GitPull["git pull origin main<br/>(Auto-clone if missing)"]
+        Compose["docker compose up -d --build<br/>Rebuild & Restart Services"]
+        Prune["docker image prune -f<br/>Clean Dangling Images"]
+        Verify["docker compose ps<br/>Container Health Verification"]
+    end
+
+    Push --> Checkout
+    Checkout --> Buildx
+    Buildx --> GHCR
+    GHCR --> BuildBackend
+    GHCR --> BuildFrontend
+    BuildBackend & BuildFrontend --> SSH
+    SSH --> GitPull
+    GitPull --> Compose
+    Compose --> Prune
+    Prune --> Verify
+```
+
+### ⚙️ Pipeline Jobs Breakdown
+
+#### 1. Build & Package Job (`build`)
+- **Checkout**: Pulls the latest repository commit using `actions/checkout@v4`.
+- **Build Engine**: Initializes Docker Buildx with GitHub Actions layer caching (`type=gha,mode=max`) for accelerated builds.
+- **Backend Containerization**: Builds `backend/Dockerfile` and pushes version-tagged images to GitHub Packages / GitHub Container Registry (`ghcr.io`).
+- **Frontend Containerization**: Builds `frontend/Dockerfile` (compiling the Expo Web static bundle and packaging with Nginx) and pushes to GHCR.
+
+#### 2. Deployment Job (`deploy`)
+- **Condition**: Triggers only on successful completion of the `build` job on branch `refs/heads/main`.
+- **Native OpenSSH**: Employs `/usr/bin/ssh` directly with modern client configurations, ensuring full compatibility with AWS EC2 SSH policies (`-o PubkeyAcceptedKeyTypes=+ssh-rsa`).
+- **Key Auto-Repair**: Automatically detects if the secret omitted the `-----BEGIN RSA PRIVATE KEY-----` header or `-----END RSA PRIVATE KEY-----` footer, reconstructing the valid PEM envelope on the fly to prevent `libcrypto` parsing errors.
+- **Auto-Clone Fallback**: Checks if the target repository directory exists on the server; if not, automatically clones the repository.
+- **Zero-Downtime Compose Up**: Auto-detects Docker Compose v2 (`docker compose`) or v1 (`docker-compose`) and executes `docker compose up -d --build`.
+- **Storage Conservation**: Executes `docker image prune -f` after deployment to prevent disk bloat on the server.
+
+---
+
+### 🔐 Required GitHub Repository Secrets
+
+Configure these under **Settings** ➔ **Secrets and variables** ➔ **Actions** ➔ **Repository secrets**:
+
+| Secret Name | Required | Default Fallback | Description |
+| :--- | :---: | :--- | :--- |
+| `SERVER_SSH_KEY` | **Yes** | — | Private SSH Key for EC2 instance access (content of `.pem` / `id_rsa`) |
+| `SERVER_HOST` | No | `3.110.181.136` | Public IP or DNS of the remote server |
+| `SERVER_USER` | No | `ubuntu` | Remote SSH username |
+| `SERVER_APP_DIR` | No | `~/feedants` | Path to the repository directory on the remote server |
+
+---
+
+### 🧪 Verifying the Deployed Application
+
+Once the GitHub Actions workflow finishes with a green checkmark:
+
+1. **Frontend Web UI**: Open `http://3.110.181.136/` in any browser.
+2. **Backend API Health**:
+   ```bash
+   curl http://3.110.181.136:5000/api/v1/health
+   # Or through the Nginx reverse proxy on port 80:
+   curl http://3.110.181.136/api/v1/health
+   ```
+3. **Database Seed Check**:
+   ```bash
+   curl http://3.110.181.136/api/v1/competitions
+   ```
+4. **Server Container Status**:
+   ```bash
+   ssh -i /path/to/aws-key.pem ubuntu@3.110.181.136 "docker compose -f ~/feedants/docker-compose.yml ps"
+   ```
 
 ---
 
