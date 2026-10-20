@@ -259,20 +259,20 @@ sequenceDiagram
 
 ## 🛠️ Technology Stack
 
-| Domain | Technology | Version | Purpose |
-| :--- | :--- | :--- | :--- |
-| **Backend Runtime** | Node.js | v20+ | Event-driven JavaScript runtime with native multi-core clustering |
-| **API Framework** | Express.js | 5.x | High-throughput HTTP routing and middleware orchestration |
-| **Database** | MongoDB | 7.x | Document database with WiredTiger storage engine for microsecond atomic updates |
-| **ODM** | Mongoose | 9.x | Schema modeling, connection pool management, and compound index enforcement |
-| **Mobile Runtime** | React Native | 0.86.x | Cross-platform native mobile compilation |
-| **Mobile Toolchain** | Expo | SDK 57 | Application bundler, native asset pipeline, and device runtime |
-| **Navigation** | React Navigation | 7.x | Native stack transitions and fluid bottom tab navigation |
-| **Language** | TypeScript / ES Modules | 5.x / ESM | Static typing on client and modern ES module syntax on server |
-| **Media Pipeline** | Cloudinary + Multer | 2.x | Memory buffer ingestion with streaming upload to global CDN |
-| **Containerization**| Docker & Docker Compose | Latest | Reproducible multi-service development and production orchestration |
-| **Web Server & Proxy** | Nginx | Alpine | High-concurrency static asset delivery & `/api/` reverse proxy |
-| **CI/CD Automation** | GitHub Actions | v4 | Automated Docker Buildx, GHCR package publishing & zero-downtime SSH deployment |
+| Domain                 | Technology              | Version   | Purpose                                                                         |
+| :--------------------- | :---------------------- | :-------- | :------------------------------------------------------------------------------ |
+| **Backend Runtime**    | Node.js                 | v20+      | Event-driven JavaScript runtime with native multi-core clustering               |
+| **API Framework**      | Express.js              | 5.x       | High-throughput HTTP routing and middleware orchestration                       |
+| **Database**           | MongoDB                 | 7.x       | Document database with WiredTiger storage engine for microsecond atomic updates |
+| **ODM**                | Mongoose                | 9.x       | Schema modeling, connection pool management, and compound index enforcement     |
+| **Mobile Runtime**     | React Native            | 0.86.x    | Cross-platform native mobile compilation                                        |
+| **Mobile Toolchain**   | Expo                    | SDK 57    | Application bundler, native asset pipeline, and device runtime                  |
+| **Navigation**         | React Navigation        | 7.x       | Native stack transitions and fluid bottom tab navigation                        |
+| **Language**           | TypeScript / ES Modules | 5.x / ESM | Static typing on client and modern ES module syntax on server                   |
+| **Media Pipeline**     | Cloudinary + Multer     | 2.x       | Memory buffer ingestion with streaming upload to global CDN                     |
+| **Containerization**   | Docker & Docker Compose | Latest    | Reproducible multi-service development and production orchestration             |
+| **Web Server & Proxy** | Nginx                   | Alpine    | High-concurrency static asset delivery & `/api/` reverse proxy                  |
+| **CI/CD Automation**   | GitHub Actions          | v4        | Automated Docker Buildx, GHCR package publishing & zero-downtime SSH deployment |
 
 ---
 
@@ -281,6 +281,7 @@ sequenceDiagram
 All backend responses conform to a standardized JSON response envelope:
 
 ### Success Response Envelope
+
 ```json
 {
   "statusCode": 200,
@@ -291,6 +292,7 @@ All backend responses conform to a standardized JSON response envelope:
 ```
 
 ### Error Response Envelope
+
 ```json
 {
   "statusCode": 400,
@@ -326,12 +328,14 @@ Before starting, ensure your system has the following installed:
 The repository uses environment blueprints for both services.
 
 #### Backend Environment Setup
+
 1. Navigate to `backend/`:
    ```bash
    cd backend
    cp .env.example .env
    ```
 2. Open `backend/.env` and configure key variables:
+
    ```env
    PORT=5000
    NODE_ENV=development
@@ -354,6 +358,7 @@ The repository uses environment blueprints for both services.
    ```
 
 #### Frontend Environment Setup
+
 1. Open a new terminal and navigate to `frontend/`:
    ```bash
    cd frontend
@@ -381,11 +386,13 @@ docker compose up -d --build
 ```
 
 This starts:
+
 - **Frontend Web App (`feedants-frontend`)**: Nginx web server running on port `80` with SPA routing and reverse proxy for `/api/` calls.
 - **Backend API (`feedants-backend`)**: Clustered Node.js / Express 5 API running on port `5000` (automatically seeds initial categories, competitions, and champions if the database is empty).
 - **MongoDB Database (`feedants-mongo`)**: MongoDB 7 instance on port `27017` with persistent volume `mongo_data`.
 
 **Useful Docker Management Commands**:
+
 ```bash
 # View real-time logs across all services
 docker compose logs -f
@@ -404,6 +411,7 @@ docker compose down
 ```
 
 **Verify Services**:
+
 - Frontend Web App: Open `http://localhost/` in your browser.
 - Backend API Health: `curl http://localhost:5000/api/v1/health` (or `curl http://localhost/api/v1/health` through Nginx).
 
@@ -416,6 +424,7 @@ docker compose down
    npm install
    ```
 3. Launch the server:
+
    ```bash
    # Development mode with file watch
    npm run dev
@@ -425,6 +434,7 @@ docker compose down
    ```
 
 Verify backend health:
+
 ```bash
 curl http://localhost:5000/api/v1/health
 ```
@@ -454,6 +464,7 @@ curl http://localhost:5000/api/v1/health
 Once the Expo development server is running, choose your target platform:
 
 #### 📱 Physical Mobile Device (Android / iOS)
+
 1. Ensure your physical phone and computer are connected to the **same local Wi-Fi network**.
 2. **Android**: Open the **Expo Go** app and tap **"Scan QR code"**. Scan the terminal QR code.
 3. **iOS**: Open the native **Camera** app, point at the terminal QR code, and tap the prompt to open in Expo Go.
@@ -461,12 +472,15 @@ Once the Expo development server is running, choose your target platform:
    On physical devices, `localhost` points to the mobile phone itself, not your PC. Our custom networking client ([`frontend/src/services/api.ts`](frontend/src/services/api.ts)) dynamically detects your host computer's local Wi-Fi IP address from the Expo bundler `hostUri` at runtime. You **do not** need to manually hardcode your IP address when switching between devices.
 
 #### 🌐 Web Browser
+
 Press **`w`** in the Expo interactive terminal to open the application in Google Chrome / default browser at `http://localhost:8081`.
 
 #### 🤖 Android Emulator
+
 With Android Studio running and a virtual device launched, press **`a`** in the Expo terminal.
 
 #### 🍎 iOS Simulator (macOS only)
+
 With Xcode installed, press **`i`** in the Expo terminal.
 
 ---
@@ -475,23 +489,25 @@ With Xcode installed, press **`i`** in the Expo terminal.
 
 While the Expo server is active, use the following interactive terminal shortcuts:
 
-| Key | Action |
-| :---: | :--- |
-| `w` | Open application in web browser |
+| Key | Action                                      |
+| :-: | :------------------------------------------ |
+| `w` | Open application in web browser             |
 | `a` | Open on Android emulator / connected device |
-| `i` | Open on iOS simulator |
-| `r` | Reload application JavaScript bundle |
-| `m` | Toggle in-app developer menu |
-| `c` | Show terminal QR code again |
-| `j` | Open Chrome DevTools debugger |
-| `?` | Show all available commands |
+| `i` | Open on iOS simulator                       |
+| `r` | Reload application JavaScript bundle        |
+| `m` | Toggle in-app developer menu                |
+| `c` | Show terminal QR code again                 |
+| `j` | Open Chrome DevTools debugger               |
+| `?` | Show all available commands                 |
 
 ---
 
 ### 🔧 Troubleshooting & FAQ
 
 #### 1. `Error: listen EADDRINUSE: address already in use :::5000`
+
 Another process is already occupying port `5000`. Kill the existing process:
+
 ```bash
 # Linux / macOS
 npx kill-port 5000
@@ -501,11 +517,13 @@ kill -9 <PID>
 ```
 
 #### 2. `Network request failed` on Physical Mobile Device
+
 - **Check Wi-Fi Network**: Ensure your mobile phone and development machine are connected to the exact same Wi-Fi SSID.
 - **Router Isolation / Hotspot**: Corporate or public Wi-Fi networks often enable "AP Isolation", preventing devices from communicating with each other. Connect both devices to a mobile hotspot to bypass network isolation.
 - **Firewall Restrictions**: Ensure your host operating system firewall allows incoming TCP connections on port `5000`.
 
 #### 3. MongoDB Connection Refused (`ECONNREFUSED 127.0.0.1:27017`)
+
 - If running natively, ensure the local MongoDB daemon is active:
   ```bash
   sudo systemctl status mongod
@@ -519,6 +537,7 @@ kill -9 <PID>
   ```
 
 #### 4. Media Upload Fails in Studio (`Upload Failed: Cloudinary credentials missing`)
+
 Browsing the app works without Cloudinary credentials using built-in fallbacks. However, uploading videos or photos from the **Create** tab requires valid `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in `backend/.env`.
 
 ---
@@ -526,12 +545,15 @@ Browsing the app works without Cloudinary credentials using built-in fallbacks. 
 ### 🧪 Verification & Health Checking Runbook
 
 #### 1. Hardware & Process Health Check
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/health
 ```
+
 _Expected Output_: `200 OK` with JSON payload containing system status (`UP`), CPU core count, uptime, and memory usage.
 
 #### 2. Verify In-Memory Cache Headers
+
 ```bash
 # First request (Cache Miss)
 curl -i http://localhost:5000/api/v1/competitions
@@ -543,10 +565,13 @@ curl -i http://localhost:5000/api/v1/competitions
 ```
 
 #### 3. High-Concurrency Stress Test on Atomic Spot Booking
+
 Simulate concurrent registration requests using a load-testing utility (`autocannon` or `k6`):
+
 ```bash
 npx autocannon -c 100 -d 10 -m POST http://localhost:5000/api/v1/competitions/<CONTEST_ID>/join
 ```
+
 _Expected Result_: Exactly `N` registrations succeed until `spotsLeft == 0`. Subsequent requests immediately return `400 Bad Request: "Contest is already full!"` with zero over-enrollment or negative spot counts.
 
 ---
@@ -594,12 +619,14 @@ flowchart TD
 ### ⚙️ Pipeline Jobs Breakdown
 
 #### 1. Build & Package Job (`build`)
+
 - **Checkout**: Pulls the latest repository commit using `actions/checkout@v4`.
 - **Build Engine**: Initializes Docker Buildx with GitHub Actions layer caching (`type=gha,mode=max`) for accelerated builds.
 - **Backend Containerization**: Builds `backend/Dockerfile` and pushes version-tagged images to GitHub Packages / GitHub Container Registry (`ghcr.io`).
 - **Frontend Containerization**: Builds `frontend/Dockerfile` (compiling the Expo Web static bundle and packaging with Nginx) and pushes to GHCR.
 
 #### 2. Deployment Job (`deploy`)
+
 - **Condition**: Triggers only on successful completion of the `build` job on branch `refs/heads/main`.
 - **Native OpenSSH**: Employs `/usr/bin/ssh` directly with modern client configurations, ensuring full compatibility with AWS EC2 SSH policies (`-o PubkeyAcceptedKeyTypes=+ssh-rsa`).
 - **Key Auto-Repair**: Automatically detects if the secret omitted the `-----BEGIN RSA PRIVATE KEY-----` header or `-----END RSA PRIVATE KEY-----` footer, reconstructing the valid PEM envelope on the fly to prevent `libcrypto` parsing errors.
@@ -613,12 +640,12 @@ flowchart TD
 
 Configure these under **Settings** ➔ **Secrets and variables** ➔ **Actions** ➔ **Repository secrets**:
 
-| Secret Name | Required | Default Fallback | Description |
-| :--- | :---: | :--- | :--- |
-| `SERVER_SSH_KEY` | **Yes** | — | Private SSH Key for EC2 instance access (content of `.pem` / `id_rsa`) |
-| `SERVER_HOST` | No | `3.110.181.136` | Public IP or DNS of the remote server |
-| `SERVER_USER` | No | `ubuntu` | Remote SSH username |
-| `SERVER_APP_DIR` | No | `~/feedants` | Path to the repository directory on the remote server |
+| Secret Name      | Required | Default Fallback | Description                                                            |
+| :--------------- | :------: | :--------------- | :--------------------------------------------------------------------- |
+| `SERVER_SSH_KEY` | **Yes**  | —                | Private SSH Key for EC2 instance access (content of `.pem` / `id_rsa`) |
+| `SERVER_HOST`    |    No    | `3.110.181.136`  | Public IP or DNS of the remote server                                  |
+| `SERVER_USER`    |    No    | `ubuntu`         | Remote SSH username                                                    |
+| `SERVER_APP_DIR` |    No    | `~/feedants`     | Path to the repository directory on the remote server                  |
 
 ---
 
@@ -646,13 +673,13 @@ Once the GitHub Actions workflow finishes with a green checkmark:
 
 ## 🛠️ Troubleshooting & Common Issues
 
-| Issue | Cause | Resolution |
-| :--- | :--- | :--- |
-| **Port 80 or 5000 already in use** | Another service (e.g. Apache, local Node) is bound to the port. | Find the process using `sudo lsof -i :<PORT>` and stop it, or update host ports in `docker-compose.yml`. |
-| **Permission denied on docker.sock** | User does not have privileges to communicate with the Docker daemon. | Add your user to the docker group: `sudo usermod -aG docker $USER` and log back into your shell. |
-| **Cannot reach server via browser** | EC2 Security Group is missing inbound rules for web traffic. | In the AWS EC2 Console, add Inbound Rules allowing **Port 80** and **Port 5000** from `0.0.0.0/0`. |
-| **Frontend displays empty data** | MongoDB is not seeded or backend is still connecting. | Check logs using `docker compose logs backend`. The backend auto-seeds on startup; restart with `docker compose restart backend`. |
-| **Docker Compose command error** | Older Docker installation uses hyphenated syntax. | The deployment script handles this automatically, or install modern compose via `sudo apt install docker-compose-v2`. |
+| Issue                                | Cause                                                                | Resolution                                                                                                                        |
+| :----------------------------------- | :------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
+| **Port 80 or 5000 already in use**   | Another service (e.g. Apache, local Node) is bound to the port.      | Find the process using `sudo lsof -i :<PORT>` and stop it, or update host ports in `docker-compose.yml`.                          |
+| **Permission denied on docker.sock** | User does not have privileges to communicate with the Docker daemon. | Add your user to the docker group: `sudo usermod -aG docker $USER` and log back into your shell.                                  |
+| **Cannot reach server via browser**  | EC2 Security Group is missing inbound rules for web traffic.         | In the AWS EC2 Console, add Inbound Rules allowing **Port 80** and **Port 5000** from `0.0.0.0/0`.                                |
+| **Frontend displays empty data**     | MongoDB is not seeded or backend is still connecting.                | Check logs using `docker compose logs backend`. The backend auto-seeds on startup; restart with `docker compose restart backend`. |
+| **Docker Compose command error**     | Older Docker installation uses hyphenated syntax.                    | The deployment script handles this automatically, or install modern compose via `sudo apt install docker-compose-v2`.             |
 
 ---
 
@@ -685,6 +712,5 @@ This project is licensed under the [ISC License](https://opensource.org/licenses
 
 ## 📬 Contact & Support
 
-- **Repository**: [https://github.com/ankit24417-sys/feedants](https://github.com/ankit24417-sys/feedants)
 - **Issues & Bug Reports**: [GitHub Issues](https://github.com/ankit24417-sys/feedants/issues)
 - **Author**: Ankit (<rathaurankit501@gmail.com>)
