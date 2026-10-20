@@ -62,25 +62,40 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Execute deployment commands on server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_HOST || '3.110.181.136' }}
-          username: ${{ secrets.SERVER_USER || 'ubuntu' }}
-          key: ${{ secrets.SERVER_SSH_KEY || secrets.SSH_KEY || secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
+      - name: Deploy to Server via SSH
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY || secrets.SSH_KEY || secrets.SSH_PRIVATE_KEY || vars.SERVER_SSH_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || '3.110.181.136' }}
+          SERVER_USER: ${{ secrets.SERVER_USER || 'ubuntu' }}
+        run: |
+          echo "========================================="
+          echo "🔑 Verifying SSH Private Key configuration..."
+          echo "========================================="
+          if [ -z "$SSH_KEY" ]; then
+            echo "::error::SSH Key secret is empty! Please check GitHub: Settings -> Secrets and variables -> Actions -> Repository secrets (make sure it's named SERVER_SSH_KEY or SSH_KEY, not under Variables or Environments)."
+            exit 1
+          fi
+
+          echo "✅ SSH Key found (${#SSH_KEY} characters). Configuring client..."
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # Fix potential line-ending issues and write key
+          printf "%s\n" "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Add server to known hosts
+          ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          echo "🚀 Connecting to $SERVER_USER@$SERVER_HOST..."
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key "$SERVER_USER@$SERVER_HOST" bash -s << 'EOF'
+            set -e
             echo "========================================="
             echo "🚀 Starting Feedants deployment on server"
             echo "========================================="
 
             # 1. Target directory where project is located on server
-            APP_DIR="${{ secrets.SERVER_APP_DIR }}"
-            if [ -z "$APP_DIR" ]; then
-              APP_DIR="$HOME/feedants"
-            fi
-
+            APP_DIR="$HOME/feedants"
             echo "📁 Ensuring project directory exists: $APP_DIR"
             if [ ! -d "$APP_DIR" ]; then
               echo "Repository not found at $APP_DIR. Cloning repository..."
@@ -93,7 +108,7 @@ jobs:
             echo "📥 Fetching latest code from branch main..."
             git pull origin main
 
-            # 3. Detect docker compose command (v2 plugin vs v1 standalone)
+            # 3. Detect docker compose command
             if docker compose version &> /dev/null; then
               COMPOSE_CMD="docker compose"
             elif command -v docker-compose &> /dev/null; then
@@ -118,3 +133,4 @@ jobs:
             echo "========================================="
             echo "✅ Deployment completed successfully!"
             echo "========================================="
+EOF
